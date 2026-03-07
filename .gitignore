@@ -1,0 +1,6 @@
+# Ignorar credenciales de base de datos
+backend/conexion.php
+
+# Ignorar archivos del sistema
+.DS_Store
+Thumbs.db

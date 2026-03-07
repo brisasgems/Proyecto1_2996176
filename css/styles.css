@@ -1,0 +1,18 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-width: 2px;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1) !important;
+}
+
+/* Evitar que el texto de los botones se seleccione al hacer doble clic rápido */
+button {
+    user-select: none;
+}
