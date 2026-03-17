@@ -1,39 +1,38 @@
-// Sistema de Gestión de Mesas - Versión con Supabase
+// Sistema de Gestión de Mesas - Versión Frontend Puro para Vercel
 
-// Configuración de Supabase (reemplaza con tus datos)
-const SUPABASE_URL = 'https://xhnmllmlyogtpcsepmko.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhobm1sbG1seW9ndHBjc2VwbWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTE5MTYsImV4cCI6MjA4OTE2NzkxNn0.XPWl1ui-lsQlhiyOCYYNZcmp7RDEF3fPu5XgjIU0yRE';
+// Datos locales (simulando base de datos)
+let mesas = [
+    { id: 1, numero_mesa: 1, capacidad: 4, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Sala principal' },
+    { id: 2, numero_mesa: 2, capacidad: 2, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Terraza' },
+    { id: 3, numero_mesa: 3, capacidad: 6, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Sala principal' },
+    { id: 4, numero_mesa: 4, capacidad: 4, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Sala principal' },
+    { id: 5, numero_mesa: 5, capacidad: 2, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Terraza' },
+    { id: 6, numero_mesa: 6, capacidad: 8, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Sala VIP' },
+    { id: 7, numero_mesa: 7, capacidad: 4, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Sala principal' },
+    { id: 8, numero_mesa: 8, capacidad: 3, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Terraza' },
+    { id: 9, numero_mesa: 9, capacidad: 4, estado: 'disponible', cliente_nombre: null, cliente_cantidad: null, hora_entrada: null, ubicacion: 'Sala principal' }
+];
 
-// Inicializar Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Cargar datos desde localStorage si existen
+function cargarDatos() {
+    const datosGuardados = localStorage.getItem('mesasRestaurante');
+    if (datosGuardados) {
+        mesas = JSON.parse(datosGuardados);
+    }
+}
 
-// Variables globales
-let mesas = [];
+// Guardar datos en localStorage
+function guardarDatos() {
+    localStorage.setItem('mesasRestaurante', JSON.stringify(mesas));
+}
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', function() {
-    cargarMesas();
+    cargarDatos();
+    renderizarMesas();
+    actualizarEstadisticas();
+    actualizarSelectMesas();
 });
-
-// Cargar mesas desde Supabase
-async function cargarMesas() {
-    try {
-        const { data, error } = await supabase
-            .from('mesas')
-            .select('*')
-            .order('numero_mesa');
-        
-        if (error) throw error;
-        
-        mesas = data;
-        renderizarMesas();
-        actualizarEstadisticas();
-        actualizarSelectMesas();
-    } catch (error) {
-        console.error('Error al cargar mesas:', error);
-        mostrarError('Error al cargar las mesas. Por favor, recarga la página.');
-    }
-}
 
 // Renderizar todas las mesas
 function renderizarMesas(mesasFiltradas = null) {
@@ -163,7 +162,7 @@ function mostrarModalAsignar(mesaId) {
 }
 
 // Asignar mesa
-async function asignarMesa() {
+function asignarMesa() {
     const mesaId = parseInt(document.getElementById('mesaId').value);
     const clienteNombre = document.getElementById('clienteNombre').value.trim();
     const cantidadPersonas = parseInt(document.getElementById('cantidadPersonas').value);
@@ -174,73 +173,55 @@ async function asignarMesa() {
         return;
     }
     
-    try {
-        const { error } = await supabase
-            .from('mesas')
-            .update({
-                estado: 'ocupada',
-                cliente_nombre: clienteNombre,
-                cliente_cantidad: cantidadPersonas,
-                hora_entrada: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-                observaciones: observaciones
-            })
-            .eq('id', mesaId);
-        
-        if (error) throw error;
-        
-        await cargarMesas();
-        bootstrap.Modal.getInstance(document.getElementById('modalAsignar')).hide();
-        mostrarExito('Mesa asignada exitosamente');
-    } catch (error) {
-        console.error('Error al asignar mesa:', error);
-        mostrarError('Error al asignar la mesa');
-    }
+    const mesa = mesas.find(m => m.id === mesaId);
+    if (!mesa) return;
+    
+    mesa.estado = 'ocupada';
+    mesa.cliente_nombre = clienteNombre;
+    mesa.cliente_cantidad = cantidadPersonas;
+    mesa.hora_entrada = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    mesa.observaciones = observaciones;
+    
+    guardarDatos();
+    renderizarMesas();
+    actualizarEstadisticas();
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalAsignar')).hide();
+    mostrarExito('Mesa asignada exitosamente');
 }
 
 // Liberar mesa
-async function liberarMesa(mesaId) {
-    try {
-        const { error } = await supabase
-            .from('mesas')
-            .update({
-                estado: 'disponible',
-                cliente_nombre: null,
-                cliente_cantidad: null,
-                hora_entrada: null,
-                hora_salida: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-                observaciones: null
-            })
-            .eq('id', mesaId);
-        
-        if (error) throw error;
-        
-        await cargarMesas();
-        mostrarExito('Mesa liberada exitosamente');
-    } catch (error) {
-        console.error('Error al liberar mesa:', error);
-        mostrarError('Error al liberar la mesa');
-    }
+function liberarMesa(mesaId) {
+    const mesa = mesas.find(m => m.id === mesaId);
+    if (!mesa) return;
+    
+    mesa.estado = 'disponible';
+    mesa.cliente_nombre = null;
+    mesa.cliente_cantidad = null;
+    mesa.hora_entrada = null;
+    mesa.hora_salida = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    mesa.observaciones = null;
+    
+    guardarDatos();
+    renderizarMesas();
+    actualizarEstadisticas();
+    
+    mostrarExito('Mesa liberada exitosamente');
 }
 
 // Confirmar reserva
-async function confirmarReserva(mesaId) {
-    try {
-        const { error } = await supabase
-            .from('mesas')
-            .update({
-                estado: 'ocupada',
-                hora_entrada: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-            })
-            .eq('id', mesaId);
-        
-        if (error) throw error;
-        
-        await cargarMesas();
-        mostrarExito('Reserva confirmada exitosamente');
-    } catch (error) {
-        console.error('Error al confirmar reserva:', error);
-        mostrarError('Error al confirmar la reserva');
-    }
+function confirmarReserva(mesaId) {
+    const mesa = mesas.find(m => m.id === mesaId);
+    if (!mesa) return;
+    
+    mesa.estado = 'ocupada';
+    mesa.hora_entrada = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    
+    guardarDatos();
+    renderizarMesas();
+    actualizarEstadisticas();
+    
+    mostrarExito('Reserva confirmada exitosamente');
 }
 
 // Mostrar detalles de mesa
