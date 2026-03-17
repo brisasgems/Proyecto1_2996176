@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.php",
+      "use": "@vercel/php"
+    },
+    {
+      "src": "backend/api.php",
+      "use": "@vercel/php"
+    },
+    {
+      "src": "backend/conexion_supabase.php",
+      "use": "@vercel/php"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/api.php"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.php"
+    }
+  ],
+  "env": {
+    "SUPABASE_HOST": "@supabase-host",
+    "SUPABASE_PORT": "@supabase-port",
+    "SUPABASE_DATABASE": "@supabase-database",
+    "SUPABASE_USER": "@supabase-user",
+    "SUPABASE_PASSWORD": "@supabase-password"
+  }
+}
