@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Mesas - Restaurante</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navegación -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-shop"></i> Sistema de Restaurante
+            </span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-light btn-sm" onclick="mostrarModalReserva()">
+                    <i class="bi bi-calendar-plus"></i> Nueva Reserva
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="mostrarModalSugerencia()">
+                    <i class="bi bi-magic"></i> Sugerir Mesa
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="mostrarModalAdminMesas()">
+                    <i class="bi bi-gear"></i> Administrar Mesas
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="container mt-4">
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Mesas</h5>
+                        <h2 class="text-primary" id="totalMesas">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Disponibles</h5>
+                        <h2 class="text-success" id="mesasDisponibles">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Ocupadas</h5>
+                        <h2 class="text-danger" id="mesasOcupadas">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Reservadas</h5>
+                        <h2 class="text-warning" id="mesasReservadas">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Filtros</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Por Estado</label>
+                                <select class="form-select" id="filtroEstado" onchange="filtrarMesas()">
+                                    <option value="">Todos</option>
+                                    <option value="disponible">Disponible</option>
+                                    <option value="ocupada">Ocupada</option>
+                                    <option value="reservada">Reservada</option>
+                                    <option value="mantenimiento">En Mantenimiento</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Por Capacidad</label>
+                                <select class="form-select" id="filtroCapacidad" onchange="filtrarMesas()">
+                                    <option value="">Todas</option>
+                                    <option value="1">1 persona</option>
+                                    <option value="2">2 personas</option>
+                                    <option value="3">3 personas</option>
+                                    <option value="4">4 personas</option>
+                                    <option value="5">5 personas</option>
+                                    <option value="6">6 personas</option>
+                                    <option value="8">8 personas</option>
+                                    <option value="10">10 personas</option>
+                                    <option value="12">12 personas</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Búsqueda</label>
+                                <input type="text" class="form-control" id="busquedaMesa" placeholder="Buscar mesa..." onkeyup="filtrarMesas()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid de Mesas -->
+        <div class="row" id="mesasContainer">
+            <!-- Las mesas se cargarán aquí dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Modal para asignar mesa -->
+    <div class="modal fade" id="modalAsignar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Asignar Mesa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAsignar">
+                        <input type="hidden" id="mesaId">
+                        <div class="mb-3">
+                            <label class="form-label">Número de Mesa</label>
+                            <input type="text" class="form-control" id="mesaNumero" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Cliente *</label>
+                            <input type="text" class="form-control" id="clienteNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cantidad de Personas *</label>
+                            <input type="number" class="form-control" id="cantidadPersonas" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="asignarMesa()">
+                        <i class="bi bi-check-circle"></i> Asignar Mesa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para sugerir mesa -->
+    <div class="modal fade" id="modalSugerencia" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sugerir Mesa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formSugerencia">
+                        <div class="mb-3">
+                            <label class="form-label">Número de Personas *</label>
+                            <input type="number" class="form-control" id="personasSugerencia" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Preferencia</label>
+                            <select class="form-select" id="preferenciaSugerencia">
+                                <option value="exacta">Capacidad exacta</option>
+                                <option value="superior">Capacidad superior</option>
+                                <option value="cercana">Capacidad más cercana</option>
+                            </select>
+                        </div>
+                    </form>
+                    <div id="resultadoSugerencia" class="mt-3">
+                        <!-- Resultados de sugerencia -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="buscarSugerencia()">
+                        <i class="bi bi-search"></i> Buscar Mesa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para reservar mesa -->
+    <div class="modal fade" id="modalReserva" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva Reserva</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formReserva">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Cliente *</label>
+                            <input type="text" class="form-control" id="reservaClienteNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cantidad de Personas *</label>
+                            <input type="number" class="form-control" id="reservaCantidadPersonas" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha *</label>
+                            <input type="date" class="form-control" id="reservaFecha" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Hora *</label>
+                            <input type="time" class="form-control" id="reservaHora" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mesa Preferida</label>
+                            <select class="form-select" id="reservaMesaPreferida">
+                                <option value="">Sin preferencia</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="crearReserva()">
+                        <i class="bi bi-calendar-check"></i> Crear Reserva
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para administrar mesas -->
+    <div class="modal fade" id="modalAdminMesas" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Administrar Mesas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6>Lista de Mesas</h6>
+                        <button class="btn btn-primary btn-sm" onclick="mostrarModalAgregarMesa()">
+                            <i class="bi bi-plus-circle"></i> Agregar Mesa
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Capacidad</th>
+                                    <th>Estado</th>
+                                    <th>Cliente</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaMesasAdmin">
+                                <!-- Contenido dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar/editar mesa -->
+    <div class="modal fade" id="modalMesaForm" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloMesaForm">Agregar Nueva Mesa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formMesa">
+                        <input type="hidden" id="mesaFormId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Número de mesa *</label>
+                            <input type="number" class="form-control" id="mesaFormNumero" min="1" required>
+                            <div class="form-text">Número único identificador de la mesa</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Capacidad de personas *</label>
+                            <select class="form-select" id="mesaFormCapacidad" required>
+                                <option value="">Seleccionar capacidad</option>
+                                <option value="1">1 persona</option>
+                                <option value="2">2 personas</option>
+                                <option value="3">3 personas</option>
+                                <option value="4">4 personas</option>
+                                <option value="5">5 personas</option>
+                                <option value="6">6 personas</option>
+                                <option value="8">8 personas</option>
+                                <option value="10">10 personas</option>
+                                <option value="12">12 personas</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Estado inicial</label>
+                            <select class="form-select" id="mesaFormEstado">
+                                <option value="disponible">Disponible</option>
+                                <option value="mantenimiento">En mantenimiento</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ubicación (opcional)</label>
+                            <input type="text" class="form-control" id="mesaFormUbicacion" placeholder="Ej: Terraza, Sala principal, etc.">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarMesa()">
+                        <i class="bi bi-save"></i> Guardar Mesa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>
